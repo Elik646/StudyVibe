@@ -18,6 +18,7 @@ model User {
   email String  @unique
   name  String?
   image String?
+  emailVerified DateTime?
 
   memberships GroupMember[]
   tasks       Task[]        @relation("TaskAssignee")
