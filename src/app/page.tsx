@@ -22,6 +22,12 @@ export default async function Home() {
               Signed in as <b>{session.user?.email}</b>
             </p>
             <a
+              href="/groups"
+              className="block w-full text-center rounded-xl border py-3"
+            >
+              Go to groups
+            </a>
+            <a
               href="/api/auth/signout"
               className="block w-full text-center rounded-xl bg-red-600 text-white py-3"
             >
