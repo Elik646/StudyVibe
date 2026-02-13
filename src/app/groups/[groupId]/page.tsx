@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import DeleteGroupButton from "./delete-group-button";
 
 export default async function GroupPage({
   params,
@@ -45,9 +46,20 @@ export default async function GroupPage({
           <h1 className="text-2xl font-semibold">{membership.group.name}</h1>
           <div className="text-sm opacity-70">Your role: {membership.role}</div>
           <div className="text-sm opacity-70">
-            Invite code: <span className="font-mono">{membership.group.inviteCode}</span>
+            Invite code:{" "}
+            <span className="font-mono">{membership.group.inviteCode}</span>
           </div>
         </div>
+
+        {membership.role === "admin" && (
+          <div className="rounded-2xl border p-6 space-y-3">
+            <h2 className="text-lg font-semibold">Admin</h2>
+            <p className="text-sm opacity-70">
+              Deleting the group will permanently remove all data inside it.
+            </p>
+            <DeleteGroupButton groupId={membership.group.id} />
+          </div>
+        )}
 
         <div className="rounded-2xl border p-6">
           <p className="opacity-80">Next: tasks, members, invite-join flow.</p>
