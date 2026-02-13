@@ -42,7 +42,16 @@ export default async function GroupsPage() {
         {groups.length === 0 ? (
           <div className="rounded-2xl border p-6">
             <p className="opacity-80">No groups yet.</p>
-            <p className="text-sm opacity-60 mt-1">Create your first group to start.</p>
+            <div className="space-y-3">
+            <p className="text-sm opacity-70">Create your first group to start.</p>
+
+            <Link
+                href="/groups/join"
+                className="inline-flex items-center rounded-xl border px-4 py-2 text-sm"
+            >
+                Join group
+            </Link>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">

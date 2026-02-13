@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import DeleteGroupButton from "./delete-group-button";
+import LeaveGroupButton from "./leave-group-button";
 
 export default async function GroupPage({
   params,
@@ -49,6 +50,14 @@ export default async function GroupPage({
             Invite code:{" "}
             <span className="font-mono">{membership.group.inviteCode}</span>
           </div>
+        </div>
+        
+        <div className="rounded-2xl border p-6 space-y-3">
+        <h2 className="text-lg font-semibold">Membership</h2>
+        <p className="text-sm opacity-70">
+            Leave the group if you no longer want access to it.
+        </p>
+        <LeaveGroupButton groupId={membership.group.id} />
         </div>
 
         {membership.role === "admin" && (
