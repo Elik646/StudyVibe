@@ -20,6 +20,8 @@ model User {
   image String?
   emailVerified DateTime?
 
+  tag String @unique @default(dbgenerated("('#' || upper(substr(md5(random()::text), 1, 6)))"))
+
   memberships GroupMember[]
   tasks       Task[]        @relation("TaskAssignee")
   comments    Comment[]
