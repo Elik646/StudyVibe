@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import LeaveGroupButton from "./leave-group-button";
 import TransferAdmin from "./transfer-admin";
 import DeleteGroupButton from "./delete-group-button";
+import InviteActions from "./invite-actions";
 
 export default async function GroupPage({
   params,
@@ -69,14 +70,17 @@ if (!me) notFound();
             Invite code:{" "}
             <span className="font-mono">{membership.group.inviteCode}</span>
           </div>
-        </div>
+          <div className="pt-2 flex flex-wrap items-center gap-2">
+            <Link
+              href={`/groups/${membership.group.id}/members`}
+              className="inline-flex items-center rounded-xl border px-4 py-2 text-sm hover:bg-white/5"
+            >
+              View members
+            </Link>
 
-        <Link
-          href={`/groups/${membership.group.id}/members`}
-          className="inline-flex items-center rounded-xl border px-4 py-2 text-sm hover:bg-white/5"
-        >
-          View members
-        </Link>
+            <InviteActions inviteCode={membership.group.inviteCode} />
+          </div>
+        </div>
 
         {/* Membership card */}
         <div className="rounded-2xl border p-6 space-y-3">
