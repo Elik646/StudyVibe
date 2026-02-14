@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 
 type Member = {
   role: "ADMIN" | "MEMBER";
-  user: { id: string; name: string | null; email: string; tag: string | null };
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    tag: string | null;
+  };
 };
 
 export default function LeaveGroupButton({
@@ -20,81 +25,131 @@ export default function LeaveGroupButton({
   myUserId: string;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [successor, setSuccessor] = useState("");
+  const [open, setOpen] = useState(false);
+  const [successorId, setSuccessorId] = useState<string>("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const candidates = useMemo(() => {
+  const otherMembers = useMemo(() => {
     return members
       .filter((m) => m.user.id !== myUserId)
       .map((m) => ({
         id: m.user.id,
-        label: `${m.user.name || m.user.email}`,
+        label: m.user.name || m.user.email,
+        tag: m.user.tag,
+        role: m.role,
       }));
   }, [members, myUserId]);
 
-  async function leave() {
-    if (isAdmin && !successor) {
-      alert("As admin, you must choose a successor before leaving.");
+  const needsSuccessor = isAdmin && otherMembers.length > 0;
+
+  async function doLeave() {
+    setError(null);
+
+    // If admin leaving but others exist, successor is required
+    if (needsSuccessor && !successorId) {
+      setError("Pick a successor admin before leaving.");
       return;
     }
 
-    if (!confirm("Leave this group?")) return;
-
-    setLoading(true);
+    setPending(true);
     try {
       const res = await fetch(`/api/groups/${groupId}/leave`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isAdmin ? { successorUserId: successor } : {}),
+        body: JSON.stringify(
+          needsSuccessor ? { successorUserId: successorId } : {}
+        ),
       });
 
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        alert(data.error || "Failed to leave group");
+        setError(data?.error ?? "Failed to leave group.");
         return;
       }
 
+      // Leave succeeded → go back to groups
       router.push("/groups");
       router.refresh();
+    } catch {
+      setError("Network error.");
     } finally {
-      setLoading(false);
+      setPending(false);
     }
   }
 
   return (
-    <div className="rounded-2xl border p-6 space-y-3">
-      <h2 className="text-lg font-semibold">Membership</h2>
-      <p className="text-sm opacity-70">
-        Leave the group if you no longer want access to it.
-      </p>
+    <div className="space-y-3">
+      <button
+        type="button"
+        onClick={() => {
+          setError(null);
+          // If admin + others exist, open chooser; otherwise leave immediately
+          if (needsSuccessor) setOpen((v) => !v);
+          else void doLeave();
+        }}
+        disabled={pending}
+        className="w-full rounded-xl border px-4 py-2 text-sm hover:bg-black/5 transition disabled:opacity-60"
+      >
+        {pending ? "Leaving..." : "Leave group"}
+      </button>
 
-      {isAdmin && (
-        <div className="space-y-2">
-          <p className="text-sm opacity-70">
-            You’re the admin — pick a successor to leave.
-          </p>
-          <select
-            className="w-full rounded-xl border px-3 py-2 bg-transparent"
-            value={successor}
-            onChange={(e) => setSuccessor(e.target.value)}
-          >
-            <option value="">Select successor…</option>
-            {candidates.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
+      {/* Only show successor picker if admin AND there are other members */}
+      {open && needsSuccessor && (
+        <div className="rounded-2xl border p-4 space-y-3">
+          <div className="text-sm font-medium">Choose successor admin</div>
+          <div className="text-sm opacity-70">
+            You’re the admin. Before leaving, pick exactly one member to become admin.
+          </div>
+
+          <div className="space-y-2">
+            {otherMembers.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setSuccessorId(m.id)}
+                className={[
+                  "w-full rounded-xl border px-3 py-2 text-left transition",
+                  successorId === m.id ? "bg-black text-white" : "hover:bg-black/5",
+                ].join(" ")}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">{m.label}</div>
+                    <div className="text-xs opacity-70">Role: {m.role}</div>
+                  </div>
+
+                  {/* Always visible tag in successor-selection UI */}
+                  {m.tag && (
+                    <div
+                      className={[
+                        "font-mono text-xs shrink-0",
+                        successorId === m.id ? "opacity-90" : "opacity-70",
+                      ].join(" ")}
+                    >
+                      {m.tag}
+                    </div>
+                  )}
+                </div>
+              </button>
             ))}
-          </select>
+          </div>
+
+          {error && <div className="text-sm text-red-600">{error}</div>}
+
+          <button
+            type="button"
+            disabled={pending}
+            onClick={doLeave}
+            className="w-full rounded-xl bg-black text-white py-2 disabled:opacity-60"
+          >
+            {pending ? "Leaving..." : "Confirm leave"}
+          </button>
         </div>
       )}
 
-      <button
-        onClick={leave}
-        disabled={loading || (isAdmin && !successor)}
-        className="w-full rounded-xl border py-3 disabled:opacity-50"
-      >
-        {loading ? "Leaving…" : "Leave group"}
-      </button>
+      {/* Non-admin leave errors show here */}
+      {!open && error && <div className="text-sm text-red-600">{error}</div>}
     </div>
   );
 }

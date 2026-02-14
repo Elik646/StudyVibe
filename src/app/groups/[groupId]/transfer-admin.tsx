@@ -1,11 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 type Member = {
+  userId: string; // IMPORTANT
   role: "ADMIN" | "MEMBER";
-  user: { id: string; name: string | null; email: string; tag: string | null };
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    tag: string;
+  };
 };
 
 export default function TransferAdmin({
@@ -17,70 +22,78 @@ export default function TransferAdmin({
   members: Member[];
   myUserId: string;
 }) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [newAdmin, setNewAdmin] = useState("");
+  const [newAdminUserId, setNewAdminUserId] = useState<string>("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const candidates = useMemo(() => {
-    return members
-      .filter((m) => m.user.id !== myUserId)
-      .map((m) => ({
-        id: m.user.id,
-        label: `${m.user.name || m.user.email}`,
-      }));
-  }, [members, myUserId]);
+  // candidates: everyone except me
+  const candidates = members.filter((m) => m.userId !== myUserId);
 
-  async function submit() {
-    if (!newAdmin) return;
-    setLoading(true);
+  async function onConfirm() {
+    setError(null);
+
+    if (!newAdminUserId) {
+      setError("newAdminUserId is required");
+      return;
+    }
+
+    setPending(true);
     try {
       const res = await fetch(`/api/groups/${groupId}/transfer-admin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newAdminUserId: newAdmin }),
+        body: JSON.stringify({ newAdminUserId }),
       });
 
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        alert(data.error || "Failed to transfer admin");
+        setError(data?.error ?? "Failed to transfer admin.");
         return;
       }
 
-      router.refresh();
+      // easiest refresh
+      window.location.reload();
+    } catch {
+      setError("Network error.");
     } finally {
-      setLoading(false);
+      setPending(false);
     }
   }
 
+  // if there is nobody to transfer to, show nothing
+  if (candidates.length === 0) return null;
+
   return (
-    <div className="rounded-2xl border p-6 space-y-3">
-      <h2 className="text-lg font-semibold">Admin</h2>
-      <p className="text-sm opacity-70">
-        Choose a new admin. Exactly one admin will exist at all times.
-      </p>
-
-      <div className="flex gap-2">
-        <select
-          className="w-full rounded-xl border px-3 py-2 bg-transparent"
-          value={newAdmin}
-          onChange={(e) => setNewAdmin(e.target.value)}
-        >
-          <option value="">Select member…</option>
-          {candidates.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-
-        <button
-          onClick={submit}
-          disabled={loading || !newAdmin}
-          className="rounded-xl bg-black text-white px-4 py-2 disabled:opacity-50"
-        >
-          {loading ? "Saving…" : "Make admin"}
-        </button>
+    <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
+      <div className="space-y-1">
+        <div className="text-sm font-medium">Choose the new admin</div>
+        <div className="text-xs text-white/70">
+          Exactly one admin must exist. Pick the member carefully.
+        </div>
       </div>
+
+      <select
+        value={newAdminUserId}
+        onChange={(e) => setNewAdminUserId(e.target.value)}
+        className="w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2 text-sm outline-none"
+      >
+        <option value="">Select member...</option>
+        {candidates.map((m) => (
+          <option key={m.userId} value={m.userId}>
+            {m.user.name || m.user.email} — {m.user.tag}
+          </option>
+        ))}
+      </select>
+
+      {error && <div className="text-xs text-red-500">{error}</div>}
+
+      <button
+        disabled={pending || !newAdminUserId}
+        onClick={onConfirm}
+        className="w-full rounded-xl bg-black text-white py-2 disabled:opacity-50"
+      >
+        {pending ? "Transferring..." : "Confirm transfer"}
+      </button>
     </div>
   );
 }
