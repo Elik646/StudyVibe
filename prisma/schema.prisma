@@ -20,7 +20,7 @@ model User {
   image String?
   emailVerified DateTime?
 
-  tag String @unique @default(dbgenerated("('#' || upper(substr(md5(random()::text), 1, 6)))"))
+  tag String @unique @default(dbgenerated("('#' || upper(substr(md5(random()::text), 1, 6)))")) @db.VarChar(8)
 
   memberships GroupMember[]
   tasks       Task[]        @relation("TaskAssignee")
@@ -43,12 +43,17 @@ model Group {
   updatedAt DateTime @updatedAt
 }
 
+enum GroupRole {
+  ADMIN
+  MEMBER
+}
+
 model GroupMember {
   id          String @id @default(cuid())
   groupId     String
   userId      String
-  role        String @default("member") // "admin" | "member"
-  capacityHrs Int? // optional availability indicator
+  role        GroupRole @default(MEMBER)
+  capacityHrs Int?
 
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)

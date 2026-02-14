@@ -3,8 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import DeleteGroupButton from "./delete-group-button";
+
 import LeaveGroupButton from "./leave-group-button";
+import TransferAdmin from "./transfer-admin";
+import DeleteGroupButton from "./delete-group-button";
 
 export default async function GroupPage({
   params,
@@ -16,23 +18,38 @@ export default async function GroupPage({
 
   const { groupId } = await params;
 
-  const membership = await prisma.groupMember.findFirst({
+const me = await prisma.user.findUnique({
+  where: { email: session.user.email },
+  select: { id: true, email: true },
+});
+
+if (!me) notFound();
+
+    const membership = await prisma.groupMember.findFirst({
     where: {
-      groupId,
-      user: { email: session.user.email },
+        groupId,
+        userId: me.id, // ✅ simplest and safest
     },
     select: {
-      role: true,
-      group: {
+        role: true,
+        userId: true,
+        group: {
         select: {
-          id: true,
-          name: true,
-          inviteCode: true,
-          createdAt: true,
+            id: true,
+            name: true,
+            inviteCode: true,
+            createdAt: true,
+            members: {
+            select: {
+                role: true,
+                user: { select: { id: true, name: true, email: true, tag: true } },
+            },
+            orderBy: { role: "asc" },
+            },
         },
-      },
+        },
     },
-  });
+    });
 
   if (!membership) notFound();
 
@@ -51,16 +68,32 @@ export default async function GroupPage({
             <span className="font-mono">{membership.group.inviteCode}</span>
           </div>
         </div>
-        
+
+        {/* Membership card */}
         <div className="rounded-2xl border p-6 space-y-3">
-        <h2 className="text-lg font-semibold">Membership</h2>
-        <p className="text-sm opacity-70">
+          <h2 className="text-lg font-semibold">Membership</h2>
+          <p className="text-sm opacity-70">
             Leave the group if you no longer want access to it.
-        </p>
-        <LeaveGroupButton groupId={membership.group.id} />
+          </p>
+
+          <LeaveGroupButton
+            groupId={membership.group.id}
+            members={membership.group.members}
+            isAdmin={membership.role === "ADMIN"}
+            myUserId={membership.userId}
+          />
+
+          {membership.role === "ADMIN" && (
+            <TransferAdmin
+              groupId={membership.group.id}
+              members={membership.group.members}
+              myUserId={membership.userId}
+            />
+          )}
         </div>
 
-        {membership.role === "admin" && (
+        {/* Admin-only delete */}
+        {membership.role === "ADMIN" && (
           <div className="rounded-2xl border p-6 space-y-3">
             <h2 className="text-lg font-semibold">Admin</h2>
             <p className="text-sm opacity-70">

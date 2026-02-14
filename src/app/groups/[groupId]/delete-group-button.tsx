@@ -5,24 +5,25 @@ import { useState } from "react";
 
 export default function DeleteGroupButton({ groupId }: { groupId: string }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onDelete() {
-    setError(null);
-
-    const ok = window.confirm(
-      "Delete this group permanently? This will remove tasks and members too."
+    const ok = confirm(
+      "Delete this group permanently? This cannot be undone."
     );
     if (!ok) return;
 
-    setLoading(true);
+    setPending(true);
+    setError(null);
+
     try {
       const res = await fetch(`/api/groups/${groupId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data?.error ?? "Failed to delete group.");
+        setError(data?.error ?? `Failed (${res.status})`);
+        setPending(false);
         return;
       }
 
@@ -30,21 +31,24 @@ export default function DeleteGroupButton({ groupId }: { groupId: string }) {
       router.refresh();
     } catch {
       setError("Network error.");
-    } finally {
-      setLoading(false);
+      setPending(false);
     }
   }
 
   return (
     <div className="space-y-2">
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      {error && (
+        <div className="rounded-xl border p-3 text-sm">
+          <span className="opacity-80">{error}</span>
+        </div>
+      )}
 
       <button
         onClick={onDelete}
-        disabled={loading}
-        className="w-full rounded-xl bg-red-600 text-white py-3 disabled:opacity-60"
+        disabled={pending}
+        className="rounded-xl bg-red-600 text-white px-4 py-2 disabled:opacity-60"
       >
-        {loading ? "Deleting..." : "Delete group"}
+        {pending ? "Deleting..." : "Delete group"}
       </button>
     </div>
   );
