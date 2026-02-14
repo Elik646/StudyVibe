@@ -71,6 +71,13 @@ if (!me) notFound();
           </div>
         </div>
 
+        <Link
+          href={`/groups/${membership.group.id}/members`}
+          className="inline-flex items-center rounded-xl border px-4 py-2 text-sm hover:bg-white/5"
+        >
+          View members
+        </Link>
+
         {/* Membership card */}
         <div className="rounded-2xl border p-6 space-y-3">
           <h2 className="text-lg font-semibold">Membership</h2>
