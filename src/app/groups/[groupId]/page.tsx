@@ -26,29 +26,31 @@ const me = await prisma.user.findUnique({
 if (!me) notFound();
 
     const membership = await prisma.groupMember.findFirst({
-    where: {
+      where: {
         groupId,
-        userId: me.id, // ✅ simplest and safest
-    },
-    select: {
+        userId: me.id,
+      },
+      select: {
         role: true,
         userId: true,
         group: {
-        select: {
+          select: {
             id: true,
             name: true,
             inviteCode: true,
             createdAt: true,
             members: {
-            select: {
+              select: {
+                id: true,
+                userId: true,
                 role: true,
                 user: { select: { id: true, name: true, email: true, tag: true } },
+              },
+              orderBy: { role: "asc" },
             },
-            orderBy: { role: "asc" },
-            },
+          },
         },
-        },
-    },
+      },
     });
 
   if (!membership) notFound();
