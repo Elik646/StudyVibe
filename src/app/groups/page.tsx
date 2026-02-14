@@ -23,7 +23,7 @@ export default async function GroupsPage() {
   const groups = await prisma.group.findMany({
     where: {
       members: {
-        some: { user: { email: session.user.email } },
+        some: { user: { is: { email: session.user.email } } }
       },
     },
     orderBy: { createdAt: "desc" },
