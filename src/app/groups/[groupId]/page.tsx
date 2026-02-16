@@ -19,40 +19,40 @@ export default async function GroupPage({
 
   const { groupId } = await params;
 
-const me = await prisma.user.findUnique({
-  where: { email: session.user.email },
-  select: { id: true, email: true },
-});
+  const me = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true, email: true },
+  });
 
-if (!me) notFound();
+  if (!me) notFound();
 
-    const membership = await prisma.groupMember.findFirst({
-      where: {
-        groupId,
-        userId: me.id,
-      },
-      select: {
-        role: true,
-        userId: true,
-        group: {
-          select: {
-            id: true,
-            name: true,
-            inviteCode: true,
-            createdAt: true,
-            members: {
-              select: {
-                id: true,
-                userId: true,
-                role: true,
-                user: { select: { id: true, name: true, email: true, tag: true } },
-              },
-              orderBy: { role: "asc" },
+  const membership = await prisma.groupMember.findFirst({
+    where: {
+      groupId,
+      userId: me.id,
+    },
+    select: {
+      role: true,
+      userId: true,
+      group: {
+        select: {
+          id: true,
+          name: true,
+          inviteCode: true,
+          createdAt: true,
+          members: {
+            select: {
+              id: true,
+              userId: true,
+              role: true,
+              user: { select: { id: true, name: true, email: true, tag: true } },
             },
+            orderBy: { role: "asc" },
           },
         },
       },
-    });
+    },
+  });
 
   if (!membership) notFound();
 
@@ -63,22 +63,38 @@ if (!me) notFound();
           ← Back to groups
         </Link>
 
+        {/* Header card */}
         <div className="rounded-2xl border p-6 space-y-2">
           <h1 className="text-2xl font-semibold">{membership.group.name}</h1>
           <div className="text-sm opacity-70">Your role: {membership.role}</div>
+
           <div className="text-sm opacity-70">
             Invite code:{" "}
             <span className="font-mono">{membership.group.inviteCode}</span>
           </div>
-          <div className="pt-2 flex flex-wrap items-center gap-2">
-            <Link
-              href={`/groups/${membership.group.id}/members`}
-              className="inline-flex items-center rounded-xl border px-4 py-2 text-sm hover:bg-white/5"
-            >
-              View members
-            </Link>
 
-            <InviteActions inviteCode={membership.group.inviteCode} />
+          {/* Actions row (uniform spacing) */}
+          <div className="pt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={`/groups/${membership.group.id}/members`}
+                className="inline-flex items-center rounded-xl border px-3 py-2 text-sm hover:bg-white/5"
+              >
+                View members
+              </Link>
+
+              <Link
+                href={`/groups/${membership.group.id}/tasks`}
+                className="inline-flex items-center rounded-xl border px-3 py-2 text-sm hover:bg-white/5"
+              >
+                Tasks
+              </Link>
+
+              <InviteActions
+                inviteCode={membership.group.inviteCode}
+                buttonClassName="inline-flex items-center rounded-xl border px-3 py-2 text-sm hover:bg-white/5"
+              />
+            </div>
           </div>
         </div>
 
